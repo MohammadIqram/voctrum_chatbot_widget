@@ -1,10 +1,11 @@
 {
   "name": "voctrum_chatbot_widget",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Interactive, multi-theme embeddable AI chatbot widget with CLI setup wizard",
   "main": "index.js",
   "module": "src/widget.js",
   "bin": {
+    "voctrum_chatbot_widget": "./bin/cli.js",
     "voctrum-chatbot-widget": "./bin/cli.js",
     "voctrum-chatbot": "./bin/cli.js"
   },

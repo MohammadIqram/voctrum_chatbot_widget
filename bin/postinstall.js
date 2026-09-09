@@ -2,27 +2,32 @@
 
 /**
  * Postinstall Hook for Voctrum Chatbot Widget
- * Runs interactive configuration when installed in a consumer project.
+ * Launches interactive CLI wizard upon installation in a project.
  */
 
-const { isInteractive } = {
-  isInteractive: process.stdout.isTTY && !process.env.CI && !process.env.CONTINUOUS_INTEGRATION
-};
+const fs = require('fs');
+const path = require('path');
+const { spawnSync } = require('child_process');
 
-// Check if being installed into a consuming application
-const isConsumingProject = process.env.INIT_CWD &&
-  !process.env.INIT_CWD.endsWith('voctrum_chatbot_widget') &&
-  !process.env.INIT_CWD.includes('node_modules');
+const targetDir = process.env.INIT_CWD || process.cwd();
 
-if (isInteractive && (isConsumingProject || process.env.RUN_CHATBOT_SETUP === 'true')) {
+// Skip if inside CI, production build, or self-development repo
+const isCI = !!(process.env.CI || process.env.CONTINUOUS_INTEGRATION || process.env.NODE_ENV === 'production');
+const isSelf = targetDir.endsWith('voctrum_chatbot_widget') || targetDir.includes(path.join('node_modules', 'voctrum_chatbot_widget'));
+
+// Check if chatbot.config.json already exists in consumer project root
+const configPath = path.join(targetDir, 'chatbot.config.json');
+const configExists = fs.existsSync(configPath);
+
+if (!isCI && !isSelf && !configExists) {
   try {
-    const { init } = require('./cli.js');
-    init().catch(() => {
-      // Gracefully continue on any error
+    const cliPath = path.join(__dirname, 'cli.js');
+    // Spawn with stdio: inherit to attach directly to terminal input/output
+    spawnSync(process.execPath, [cliPath], {
+      stdio: 'inherit',
+      cwd: targetDir
     });
   } catch (err) {
     // Non-blocking fallback
   }
-} else {
-  // Silent fallback for CI/CD or development installs
 }
