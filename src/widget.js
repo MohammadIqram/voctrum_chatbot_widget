@@ -333,28 +333,47 @@
     }
 
     async loadConfiguration() {
-      // 1. Read attribute overrides
+      // 1. Load from chatbot.config.json (Primary Source of Truth)
+      let jsonConfig = {};
+      const pathsToTry = [
+        './chatbot.config.json',
+        '/chatbot.config.json',
+        '../chatbot.config.json',
+        '../../chatbot.config.json'
+      ];
+
+      // Try finding chatbot.config.json relative to script tag if possible
+      try {
+        const script = document.currentScript || document.querySelector('script[src*="widget.js"]');
+        if (script && script.src) {
+          const scriptUrl = new URL(script.src, window.location.href);
+          const basePath = scriptUrl.pathname.substring(0, scriptUrl.pathname.lastIndexOf('/'));
+          pathsToTry.push(`${basePath}/../chatbot.config.json`);
+          pathsToTry.push(`${basePath}/chatbot.config.json`);
+        }
+      } catch (e) {}
+
+      for (const p of pathsToTry) {
+        try {
+          const res = await fetch(p, { cache: 'no-cache' });
+          if (res.ok) {
+            jsonConfig = await res.json();
+            break;
+          }
+        } catch (e) {}
+      }
+
+      // 2. Element attribute overrides (if explicitly specified on HTML tag)
       const attrName = this.getAttribute('app-name');
       const attrDesc = this.getAttribute('description');
       const attrTheme = this.getAttribute('theme');
       const attrPos = this.getAttribute('position');
-      const attrKey = this.getAttribute('api-key');
-      const attrUrl = this.getAttribute('api-url');
+      const attrKey = this.getAttribute('api-key') || this.getAttribute('apikey');
+      const attrUrl = this.getAttribute('api-url') || this.getAttribute('apiurl');
       const attrWelcome = this.getAttribute('welcome-message');
 
-      // 2. Window global configuration
-      const windowConfig = (typeof window !== 'undefined' && window.__VOCTRUM_CHATBOT_CONFIG__) || {};
-
-      // 3. Try to fetch chatbot.config.json if available locally
-      let jsonConfig = {};
-      try {
-        const res = await fetch('./chatbot.config.json', { cache: 'no-cache' });
-        if (res.ok) {
-          jsonConfig = await res.json();
-        }
-      } catch (e) {
-        // Silent catch for local environments without config file
-      }
+      // 3. Window global configuration fallback
+      const windowConfig = (typeof window !== 'undefined' && (window.__VOCTRUM_CHATBOT_CONFIG__ || window.VOCTRUM_CONFIG || window.CHATBOT_CONFIG)) || {};
 
       this.config = {
         ...this.config,
@@ -1101,10 +1120,17 @@
                 </div>
               </div>
               <div class="header-actions">
+                <button class="header-btn" id="key-btn" title="Set / View API Key">🔑</button>
                 <button class="header-btn" id="sound-btn" title="Toggle Sound">🔔</button>
                 <button class="header-btn" id="reset-btn" title="Reset Conversation">🔄</button>
                 <button class="header-btn" id="close-btn" title="Close">✕</button>
               </div>
+            </div>
+
+            <!-- API Key Bar (Toggleable) -->
+            <div class="api-key-bar" id="api-key-bar" style="display: none; background: var(--vt-surface); padding: 8px 12px; border-bottom: 1px solid var(--vt-surfaceBorder); align-items: center; gap: 8px;">
+              <input type="password" id="inline-api-key" placeholder="Enter Voctrum API Key..." style="flex: 1; background: var(--vt-background); color: var(--vt-textPrimary); border: 1px solid var(--vt-surfaceBorder); border-radius: 6px; padding: 4px 8px; font-size: 12px; outline: none;" value="${this.config.apiKey || ''}">
+              <button id="save-key-btn" style="background: var(--vt-primary); color: var(--vt-primaryText); border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-weight: 600;">Save</button>
             </div>
 
             <!-- Theme Toolbar -->
@@ -1197,9 +1223,34 @@
       const chatInput = this.shadowRoot.getElementById('chat-input');
       const suggestionsWrapper = this.shadowRoot.getElementById('suggestions-wrapper');
 
+      const keyBtn = this.shadowRoot.getElementById('key-btn');
+      const apiKeyBar = this.shadowRoot.getElementById('api-key-bar');
+      const inlineApiKey = this.shadowRoot.getElementById('inline-api-key');
+      const saveKeyBtn = this.shadowRoot.getElementById('save-key-btn');
+
       // Launcher toggle
       launcherBtn.addEventListener('click', () => this.toggleChat());
       closeBtn.addEventListener('click', () => this.toggleChat(false));
+
+      // Key toggle & save
+      keyBtn.addEventListener('click', () => {
+        const isHidden = apiKeyBar.style.display === 'none';
+        apiKeyBar.style.display = isHidden ? 'flex' : 'none';
+        if (isHidden && inlineApiKey) inlineApiKey.focus();
+      });
+
+      saveKeyBtn.addEventListener('click', () => {
+        const key = inlineApiKey.value.trim();
+        this.config.apiKey = key;
+        try {
+          localStorage.setItem('voctrum_api_key', key);
+        } catch (e) {}
+        saveKeyBtn.innerText = 'Saved!';
+        setTimeout(() => {
+          saveKeyBtn.innerText = 'Save';
+          apiKeyBar.style.display = 'none';
+        }, 1000);
+      });
 
       // Reset
       resetBtn.addEventListener('click', () => {
