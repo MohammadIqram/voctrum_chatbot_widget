@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voctrum Chatbot Widget - Interactive Demo & Theme Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: #111726;
+      --border-color: #1e293b;
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 60%, rgba(236, 72, 153, 0.12) 0%, transparent 45%);
+    }
+
+    /* Navbar */
+    header {
+      padding: 20px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      background: rgba(9, 13, 22, 0.7);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .badge-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    /* Hero */
+    .hero {
+      max-width: 1200px;
+      margin: 40px auto 30px;
+      padding: 0 24px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 auto 32px;
+    }
+
+    /* Grid layout */
+    .main-content {
+      max-width: 1200px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    @media (max-width: 900px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Theme Grid Switcher */
+    .themes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+    }
+
+    .theme-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid var(--border-color);
+      border-radius: 14px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+    }
+
+    .theme-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .theme-card.active {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.1);
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .theme-color-preview {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .theme-name {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Form Controls */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    input, select {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-apply {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .btn-apply:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.1);
+    }
+
+    /* Code Snippet Box */
+    .code-box {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: #cbd5e1;
+      position: relative;
+      overflow-x: auto;
+    }
+
+    .floating-note {
+      position: fixed;
+      bottom: 100px;
+      right: 32px;
+      background: rgba(99, 102, 241, 0.95);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: floatPrompt 3s ease-in-out infinite;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    @keyframes floatPrompt {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .theme-badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-group">
+      <div class="logo-icon">🤖</div>
+      <span>Voctrum Chatbot Widget</span>
+      <span class="badge-pill">v1.0.0</span>
+    </div>
+    <div>
+      <span class="badge-pill" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3);">
+        ● Ready in Bottom-Right
+      </span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1>Multi-Theme AI Chatbot Widget</h1>
+    <p>
+      An embeddable chatbot package configured via interactive prompts. Custom App Name, 8 visual themes, markdown support, and instant LLM integration.
+    </p>
+  </section>
+
+  <main class="main-content">
+    <!-- Theme Selector Card -->
+    <div class="card">
+      <h2>🎨 Live Theme Switcher</h2>
+      <p style="font-size: 13.5px; color: var(--text-muted);">
+        Click any theme below to switch the widget's appearance in real-time:
+      </p>
+
+      <div class="themes-grid" id="themes-grid">
+        <!-- Generated dynamically -->
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+
+      <h2>⚙️ Customize Chatbot Identity</h2>
+      <div class="form-group">
+        <label for="input-app-name">App / Bot Name</label>
+        <input type="text" id="input-app-name" value="Voctrum AI Assistant" placeholder="e.g. My SaaS Bot">
+      </div>
+
+      <div class="form-group">
+        <label for="input-desc">Description / Tagline</label>
+        <input type="text" id="input-desc" value="Instant answers & 24/7 intelligent assistance" placeholder="e.g. Ask me anything">
+      </div>
+
+      <div class="form-group">
+        <label for="select-position">Screen Position</label>
+        <select id="select-position">
+          <option value="bottom-right" selected>Bottom Right (Default)</option>
+          <option value="bottom-left">Bottom Left</option>
+          <option value="top-right">Top Right</option>
+          <option value="top-left">Top Left</option>
+        </select>
+      </div>
+
+      <button class="btn-apply" id="btn-apply">🚀 Update Widget Live</button>
+    </div>
+
+    <!-- Integration & Prompt Info Card -->
+    <div class="card">
+      <h2>📦 NPM Setup Prompt Simulation</h2>
+      <p style="font-size: 13.5px; color: var(--text-muted);">
+        When users run <code>npm install</code> or <code>npx voctrum-chatbot-widget</code>, they receive this interactive setup:
+      </p>
+
+      <div class="code-box">
+<span style="color: #6366f1;">╔════════════════════════════════════════════════════════════╗</span>
+<span style="color: #6366f1;">║               🤖 VOCTRUM CHATBOT WIDGET SETUP              ║</span>
+<span style="color: #6366f1;">╚════════════════════════════════════════════════════════════╝</span>
+
+<span style="color: #38bdf8;">🏷️  App Name:</span> Voctrum AI Assistant
+<span style="color: #38bdf8;">📝 Tagline:</span> 24/7 Instant AI Support
+<span style="color: #38bdf8;">🌐 Backend:</span> https://chat.voctrum.com/chatbot/chat
+<span style="color: #38bdf8;">🔑 API Key:</span> ••••••••••••••••
+<span style="color: #38bdf8;">🎨 Theme:</span> 8 Presets Available
+<span style="color: #38bdf8;">📍 Position:</span> Bottom Right
+      </div>
+
+      <h2>💻 Embed Code</h2>
+      <p style="font-size: 13.5px; color: var(--text-muted);">Add this single line to any HTML file:</p>
+      <div class="code-box">
+<span style="color: #94a3b8;">&lt;!-- Include widget script --&gt;</span>
+&lt;script src="<span style="color: #34d399;">dist/widget.js</span>"&gt;&lt;/script&gt;
+      </div>
+
+      <p style="font-size: 13.5px; color: var(--text-muted);">Or import in React / Next.js:</p>
+      <div class="code-box">
+<span style="color: #f472b6;">import</span> { initChatbot } <span style="color: #f472b6;">from</span> <span style="color: #34d399;">'voctrum_chatbot_widget'</span>;
+
+initChatbot({
+  appName: <span style="color: #34d399;">'Voctrum AI Assistant'</span>,
+  theme: <span style="color: #34d399;">'cyberpunk'</span>,
+  position: <span style="color: #34d399;">'bottom-right'</span>
+});
+      </div>
+    </div>
+  </main>
+
+  <div class="floating-note" id="floating-note">
+    <span>👉 Click the chatbot button here</span>
+    <span>↘️</span>
+  </div>
+
+  <!-- Include Chatbot Widget Bundle -->
+  <script src="../dist/widget.js"></script>
+
+  <script>
+    const themesData = [
+      { id: 'dark', name: 'Dark', color: '#6366f1', desc: 'Obsidian & Graphite' },
+      { id: 'light', name: 'Light', color: '#2563eb', desc: 'Clean Sapphire' },
+      { id: 'cyberpunk', name: 'Cyberpunk', color: '#ec4899', desc: 'Magenta & Cyan' },
+      { id: 'emerald', name: 'Emerald', color: '#059669', desc: 'Mint & Jade' },
+      { id: 'ocean', name: 'Ocean', color: '#0284c7', desc: 'Azure & Aqua' },
+      { id: 'sunset', name: 'Sunset', color: '#f43f5e', desc: 'Rose & Amber' },
+      { id: 'amethyst', name: 'Amethyst', color: '#8b5cf6', desc: 'Royal Violet' },
+      { id: 'midnight', name: 'Midnight', color: '#4f46e5', desc: 'Titanium & Slate' }
+    ];
+
+    const themesGrid = document.getElementById('themes-grid');
+    let currentTheme = 'dark';
+
+    // Populate theme switcher cards
+    themesData.forEach(t => {
+      const card = document.createElement('div');
+      card.className = `theme-card ${t.id === currentTheme ? 'active' : ''}`;
+      card.innerHTML = `
+        <div class="theme-color-preview" style="background: ${t.color}"></div>
+        <div class="theme-name">${t.name}</div>
+      `;
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        currentTheme = t.id;
+        
+        const widget = document.querySelector('voctrum-chatbot-widget');
+        if (widget) {
+          widget.setAttribute('theme', t.id);
+        }
+      });
+      themesGrid.appendChild(card);
+    });
+
+    // Handle App Name and Description update
+    document.getElementById('btn-apply').addEventListener('click', () => {
+      const appName = document.getElementById('input-app-name').value.trim() || 'Voctrum AI';
+      const desc = document.getElementById('input-desc').value.trim() || 'Instant AI support';
+      const pos = document.getElementById('select-position').value;
+
+      // Re-initialize or update widget
+      let widget = document.querySelector('voctrum-chatbot-widget');
+      if (widget) {
+        widget.setAttribute('app-name', appName);
+        widget.setAttribute('description', desc);
+        widget.setAttribute('position', pos);
+        widget.setAttribute('theme', currentTheme);
+      }
+
+      // Hide prompt indicator
+      const note = document.getElementById('floating-note');
+      if (note) note.style.display = 'none';
+
+      // Open widget to show the changes immediately
+      setTimeout(() => {
+        if (widget && widget.shadowRoot) {
+          const launcherBtn = widget.shadowRoot.getElementById('launcher-btn');
+          const chatWindow = widget.shadowRoot.getElementById('chat-window');
+          if (launcherBtn && !chatWindow.classList.contains('is-open')) {
+            launcherBtn.click();
+          }
+        }
+      }, 100);
+    });
+  </script>
+</body>
+</html>

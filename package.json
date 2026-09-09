@@ -1,0 +1,51 @@
+{
+  "name": "voctrum_chatbot_widget",
+  "version": "1.0.0",
+  "description": "Interactive, multi-theme embeddable AI chatbot widget with CLI setup wizard",
+  "main": "index.js",
+  "module": "src/widget.js",
+  "bin": {
+    "voctrum-chatbot-widget": "./bin/cli.js",
+    "voctrum-chatbot": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node -e \"const http=require('http'),fs=require('fs'),path=require('path'),M={'.html':'text/html','.js':'application/javascript','.json':'application/json','.css':'text/css'};http.createServer((q,s)=>{let p=q.url.split('?')[0];if(p==='/'||!p)p='/demo/index.html';let f=path.join(process.cwd(),p);if(fs.existsSync(f)&&fs.statSync(f).isFile()){s.writeHead(200,{'Content-Type':M[path.extname(f)]||'text/plain'});fs.createReadStream(f).pipe(s);}else{s.writeHead(404);s.end('Not Found');}}).listen(4123,()=>console.log('Demo running on http://localhost:4123/demo/index.html'));\"",
+    "build": "node ./bin/build.js",
+    "postinstall": "node ./bin/postinstall.js",
+    "setup": "node ./bin/cli.js",
+    "test": "node ./test/widget.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist",
+    "src",
+    "bin",
+    "index.js",
+    "chatbot.config.json",
+    "README.md"
+  ],
+  "keywords": [
+    "chatbot",
+    "ai",
+    "widget",
+    "openai",
+    "gemini",
+    "themes",
+    "embeddable",
+    "react",
+    "chat-widget",
+    "dark-mode",
+    "web-component"
+  ],
+  "author": "Voctrum",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

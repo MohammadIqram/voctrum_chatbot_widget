@@ -1,0 +1,14 @@
+{
+  "appName": "Voctrum AI",
+  "description": "Instant answers & 24/7 intelligent assistance",
+  "apiKey": "094385430954309582345ret",
+  "apiUrl": "https://chat.voctrum.com/chatbot/chat",
+  "theme": "cyberpunk",
+  "position": "bottom-right",
+  "welcomeMessage": "Hello! How can I help you today?",
+  "starterPrompts": [
+    "What features are available?",
+    "How do I get started?",
+    "Contact support"
+  ]
+}
