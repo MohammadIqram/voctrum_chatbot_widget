@@ -1,7 +1,7 @@
 /**
  * Voctrum Chatbot Widget
  * Premium, customizable, multi-theme embeddable AI chatbot widget.
- * Connects directly to Voctrum Python server (https://chat.voctrum.com/chatbot/chat).
+ * Direct component prop support & Python backend connection.
  */
 
 (function (global) {
@@ -280,10 +280,14 @@
     return escaped;
   }
 
-  class ChatbotWidget extends HTMLElement {
+  const BaseElement = typeof HTMLElement !== 'undefined' ? HTMLElement : class {};
+
+  class ChatbotWidget extends BaseElement {
     constructor() {
       super();
-      this.attachShadow({ mode: 'open' });
+      if (typeof this.attachShadow === 'function') {
+        this.attachShadow({ mode: 'open' });
+      }
       this.isOpen = false;
       this.isSoundEnabled = true;
       this.isTyping = false;
@@ -333,26 +337,21 @@
     }
 
     async loadConfiguration() {
-      // 1. Load from chatbot.config.json (Primary Source of Truth)
+      // 1. Element attribute overrides (passed as component props or HTML attributes)
+      const attrName = this.getAttribute('app-name');
+      const attrDesc = this.getAttribute('description');
+      const attrTheme = this.getAttribute('theme');
+      const attrPos = this.getAttribute('position');
+      const attrKey = this.getAttribute('api-key') || this.getAttribute('apikey');
+      const attrUrl = this.getAttribute('api-url') || this.getAttribute('apiurl');
+      const attrWelcome = this.getAttribute('welcome-message');
+
+      // 2. Global window configuration fallback
+      const windowConfig = (typeof window !== 'undefined' && (window.__VOCTRUM_CHATBOT_CONFIG__ || window.VOCTRUM_CONFIG || window.CHATBOT_CONFIG)) || {};
+
+      // 3. Optional chatbot.config.json fallback
       let jsonConfig = {};
-      const pathsToTry = [
-        './chatbot.config.json',
-        '/chatbot.config.json',
-        '../chatbot.config.json',
-        '../../chatbot.config.json'
-      ];
-
-      // Try finding chatbot.config.json relative to script tag if possible
-      try {
-        const script = document.currentScript || document.querySelector('script[src*="widget.js"]');
-        if (script && script.src) {
-          const scriptUrl = new URL(script.src, window.location.href);
-          const basePath = scriptUrl.pathname.substring(0, scriptUrl.pathname.lastIndexOf('/'));
-          pathsToTry.push(`${basePath}/../chatbot.config.json`);
-          pathsToTry.push(`${basePath}/chatbot.config.json`);
-        }
-      } catch (e) {}
-
+      const pathsToTry = ['./chatbot.config.json', '/chatbot.config.json'];
       for (const p of pathsToTry) {
         try {
           const res = await fetch(p, { cache: 'no-cache' });
@@ -362,18 +361,6 @@
           }
         } catch (e) {}
       }
-
-      // 2. Element attribute overrides (if explicitly specified on HTML tag)
-      const attrName = this.getAttribute('app-name');
-      const attrDesc = this.getAttribute('description');
-      const attrTheme = this.getAttribute('theme');
-      const attrPos = this.getAttribute('position');
-      const attrKey = this.getAttribute('api-key') || this.getAttribute('apikey');
-      const attrUrl = this.getAttribute('api-url') || this.getAttribute('apiurl');
-      const attrWelcome = this.getAttribute('welcome-message');
-
-      // 3. Window global configuration fallback
-      const windowConfig = (typeof window !== 'undefined' && (window.__VOCTRUM_CHATBOT_CONFIG__ || window.VOCTRUM_CONFIG || window.CHATBOT_CONFIG)) || {};
 
       this.config = {
         ...this.config,
@@ -388,13 +375,13 @@
         ...(attrWelcome && { welcomeMessage: attrWelcome }),
       };
 
-      // If starterPrompts is a comma string in jsonConfig, format it
       if (typeof this.config.starterPrompts === 'string') {
         this.config.starterPrompts = this.config.starterPrompts.split(',').map(s => s.trim()).filter(Boolean);
       }
     }
 
     initMessages() {
+      if (typeof localStorage === 'undefined') return;
       const saved = localStorage.getItem(`voctrum_chat_${this.config.appName.replace(/\s+/g, '_').toLowerCase()}`);
       if (saved) {
         try {
@@ -415,6 +402,7 @@
     }
 
     saveMessages() {
+      if (typeof localStorage === 'undefined') return;
       localStorage.setItem(`voctrum_chat_${this.config.appName.replace(/\s+/g, '_').toLowerCase()}`, JSON.stringify(this.messages));
     }
 
@@ -428,6 +416,7 @@
     }
 
     applyTheme(themeId) {
+      if (!this.shadowRoot) return;
       const colors = this.getThemeColors(themeId);
       const container = this.shadowRoot.querySelector('.voctrum-root');
       if (!container) return;
@@ -436,7 +425,6 @@
         container.style.setProperty(`--vt-${key}`, val);
       });
 
-      // Update theme selector dropdown value if present
       const themeSelect = this.shadowRoot.getElementById('theme-select');
       if (themeSelect && themeSelect.value !== themeId) {
         themeSelect.value = themeId;
@@ -444,7 +432,7 @@
     }
 
     playChime(type = 'receive') {
-      if (!this.isSoundEnabled) return;
+      if (!this.isSoundEnabled || typeof window === 'undefined') return;
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
@@ -467,14 +455,13 @@
           osc.start();
           osc.stop(ctx.currentTime + 0.15);
         }
-      } catch (e) {
-        // AudioContext not allowed before user gesture
-      }
+      } catch (e) {}
     }
 
     render() {
-      const isLeft = this.config.position.includes('left');
-      const isTop = this.config.position.includes('top');
+      if (!this.shadowRoot) return;
+      const isLeft = (this.config.position || '').includes('left');
+      const isTop = (this.config.position || '').includes('top');
 
       const themeOptions = Object.keys(THEMES).map(k => {
         const t = THEMES[k];
@@ -1120,17 +1107,10 @@
                 </div>
               </div>
               <div class="header-actions">
-                <button class="header-btn" id="key-btn" title="Set / View API Key">🔑</button>
                 <button class="header-btn" id="sound-btn" title="Toggle Sound">🔔</button>
                 <button class="header-btn" id="reset-btn" title="Reset Conversation">🔄</button>
                 <button class="header-btn" id="close-btn" title="Close">✕</button>
               </div>
-            </div>
-
-            <!-- API Key Bar (Toggleable) -->
-            <div class="api-key-bar" id="api-key-bar" style="display: none; background: var(--vt-surface); padding: 8px 12px; border-bottom: 1px solid var(--vt-surfaceBorder); align-items: center; gap: 8px;">
-              <input type="password" id="inline-api-key" placeholder="Enter Voctrum API Key..." style="flex: 1; background: var(--vt-background); color: var(--vt-textPrimary); border: 1px solid var(--vt-surfaceBorder); border-radius: 6px; padding: 4px 8px; font-size: 12px; outline: none;" value="${this.config.apiKey || ''}">
-              <button id="save-key-btn" style="background: var(--vt-primary); color: var(--vt-primaryText); border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-weight: 600;">Save</button>
             </div>
 
             <!-- Theme Toolbar -->
@@ -1188,6 +1168,7 @@
     }
 
     renderMessages() {
+      if (!this.shadowRoot) return;
       const list = this.shadowRoot.getElementById('messages-list');
       if (!list) return;
 
@@ -1205,6 +1186,7 @@
     }
 
     scrollToBottom() {
+      if (!this.shadowRoot) return;
       const messagesContainer = this.shadowRoot.getElementById('chat-messages');
       if (messagesContainer) {
         setTimeout(() => {
@@ -1214,6 +1196,7 @@
     }
 
     bindEvents() {
+      if (!this.shadowRoot) return;
       const launcherBtn = this.shadowRoot.getElementById('launcher-btn');
       const closeBtn = this.shadowRoot.getElementById('close-btn');
       const resetBtn = this.shadowRoot.getElementById('reset-btn');
@@ -1223,114 +1206,92 @@
       const chatInput = this.shadowRoot.getElementById('chat-input');
       const suggestionsWrapper = this.shadowRoot.getElementById('suggestions-wrapper');
 
-      const keyBtn = this.shadowRoot.getElementById('key-btn');
-      const apiKeyBar = this.shadowRoot.getElementById('api-key-bar');
-      const inlineApiKey = this.shadowRoot.getElementById('inline-api-key');
-      const saveKeyBtn = this.shadowRoot.getElementById('save-key-btn');
+      if (launcherBtn) launcherBtn.addEventListener('click', () => this.toggleChat());
+      if (closeBtn) closeBtn.addEventListener('click', () => this.toggleChat(false));
 
-      // Launcher toggle
-      launcherBtn.addEventListener('click', () => this.toggleChat());
-      closeBtn.addEventListener('click', () => this.toggleChat(false));
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          if (confirm('Clear chat conversation history?')) {
+            this.messages = [{
+              id: 'welcome-' + Date.now(),
+              sender: 'assistant',
+              text: this.config.welcomeMessage,
+              time: this.formatTime(new Date())
+            }];
+            this.saveMessages();
+            this.renderMessages();
+          }
+        });
+      }
 
-      // Key toggle & save
-      keyBtn.addEventListener('click', () => {
-        const isHidden = apiKeyBar.style.display === 'none';
-        apiKeyBar.style.display = isHidden ? 'flex' : 'none';
-        if (isHidden && inlineApiKey) inlineApiKey.focus();
-      });
+      if (soundBtn) {
+        soundBtn.addEventListener('click', () => {
+          this.isSoundEnabled = !this.isSoundEnabled;
+          soundBtn.innerText = this.isSoundEnabled ? '🔔' : '🔕';
+        });
+      }
 
-      saveKeyBtn.addEventListener('click', () => {
-        const key = inlineApiKey.value.trim();
-        this.config.apiKey = key;
-        try {
-          localStorage.setItem('voctrum_api_key', key);
-        } catch (e) {}
-        saveKeyBtn.innerText = 'Saved!';
-        setTimeout(() => {
-          saveKeyBtn.innerText = 'Save';
-          apiKeyBar.style.display = 'none';
-        }, 1000);
-      });
+      if (themeSelect) {
+        themeSelect.addEventListener('change', (e) => {
+          this.config.theme = e.target.value;
+          this.applyTheme(e.target.value);
+        });
+      }
 
-      // Reset
-      resetBtn.addEventListener('click', () => {
-        if (confirm('Clear chat conversation history?')) {
-          this.messages = [{
-            id: 'welcome-' + Date.now(),
-            sender: 'assistant',
-            text: this.config.welcomeMessage,
-            time: this.formatTime(new Date())
-          }];
-          this.saveMessages();
-          this.renderMessages();
-        }
-      });
+      if (suggestionsWrapper) {
+        suggestionsWrapper.addEventListener('click', (e) => {
+          const chip = e.target.closest('.suggestion-chip');
+          if (chip) {
+            const prompt = chip.getAttribute('data-prompt');
+            this.sendMessage(prompt);
+          }
+        });
+      }
 
-      // Sound toggle
-      soundBtn.addEventListener('click', () => {
-        this.isSoundEnabled = !this.isSoundEnabled;
-        soundBtn.innerText = this.isSoundEnabled ? '🔔' : '🔕';
-      });
-
-      // Live Theme selector
-      themeSelect.addEventListener('change', (e) => {
-        this.config.theme = e.target.value;
-        this.applyTheme(e.target.value);
-      });
-
-      // Suggestion chips
-      suggestionsWrapper.addEventListener('click', (e) => {
-        const chip = e.target.closest('.suggestion-chip');
-        if (chip) {
-          const prompt = chip.getAttribute('data-prompt');
-          this.sendMessage(prompt);
-        }
-      });
-
-      // Input send
-      sendBtn.addEventListener('click', () => {
-        const text = chatInput.value.trim();
-        if (text) {
-          this.sendMessage(text);
-          chatInput.value = '';
-          chatInput.style.height = 'auto';
-        }
-      });
-
-      // Input keydown
-      chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
+      if (sendBtn && chatInput) {
+        sendBtn.addEventListener('click', () => {
           const text = chatInput.value.trim();
           if (text) {
             this.sendMessage(text);
             chatInput.value = '';
             chatInput.style.height = 'auto';
           }
-        }
-      });
+        });
 
-      // Auto resize textarea
-      chatInput.addEventListener('input', () => {
-        chatInput.style.height = 'auto';
-        chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
-      });
+        chatInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (text) {
+              this.sendMessage(text);
+              chatInput.value = '';
+              chatInput.style.height = 'auto';
+            }
+          }
+        });
+
+        chatInput.addEventListener('input', () => {
+          chatInput.style.height = 'auto';
+          chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+        });
+      }
     }
 
     toggleChat(forceState) {
+      if (!this.shadowRoot) return;
       this.isOpen = typeof forceState === 'boolean' ? forceState : !this.isOpen;
       const chatWindow = this.shadowRoot.getElementById('chat-window');
       const launcherBtn = this.shadowRoot.getElementById('launcher-btn');
 
       if (this.isOpen) {
-        chatWindow.classList.add('is-open');
-        launcherBtn.classList.add('is-active');
+        if (chatWindow) chatWindow.classList.add('is-open');
+        if (launcherBtn) launcherBtn.classList.add('is-active');
         const chatInput = this.shadowRoot.getElementById('chat-input');
         if (chatInput) setTimeout(() => chatInput.focus(), 300);
         this.scrollToBottom();
       } else {
-        chatWindow.classList.remove('is-open');
-        launcherBtn.classList.remove('is-active');
+        if (chatWindow) chatWindow.classList.remove('is-open');
+        if (launcherBtn) launcherBtn.classList.remove('is-active');
       }
     }
 
@@ -1349,7 +1310,6 @@
       this.saveMessages();
       this.playChime('send');
 
-      // Set typing indicator
       this.setTyping(true);
 
       try {
@@ -1378,6 +1338,7 @@
 
     setTyping(typing) {
       this.isTyping = typing;
+      if (!this.shadowRoot) return;
       const indicator = this.shadowRoot.getElementById('typing-indicator');
       const sendBtn = this.shadowRoot.getElementById('send-btn');
       if (indicator) indicator.style.display = typing ? 'flex' : 'none';
@@ -1448,21 +1409,18 @@
       if (lower.includes('feature') || lower.includes('what can you do')) {
         return `✨ **${appName} Key Features:**\n\n- 🚀 **Connected to Python Server Route** (\`${endpoint}\`)\n- 🎨 **8 Premium Themes** (Light, Dark, Cyberpunk, Emerald, Ocean, Sunset, Amethyst, Midnight)\n- ⚡ **Embeddable Web Component & React Wrapper**\n- 📱 **Fully Responsive** & mobile optimized\n- 💬 **Rich Markdown & Code Highlighting**`;
       }
-      if (lower.includes('code') || lower.includes('install') || lower.includes('embed')) {
-        return `Embed **${appName}** with a single script:\n\n\`\`\`html\n<script src="dist/widget.js"></script>\n\`\`\`\n\nOr in React:\n\`\`\`javascript\nimport { initChatbot } from 'voctrum_chatbot_widget';\n\ninitChatbot({\n  appName: '${appName}',\n  apiKey: 'YOUR_API_KEY',\n  apiUrl: '${endpoint}',\n  theme: '${this.config.theme}'\n});\n\`\`\``;
-      }
-      return `Hello from **${appName}**! 🚀\n\nI received: "*${userPrompt}*".\n\nTo connect live to your Python server at \`${endpoint}\`, enter your **apiKey** in \`chatbot.config.json\` or widget attributes!`;
+      return `Hello from **${appName}**! 🚀\n\nI received: "*${userPrompt}*".\n\nTo connect live to your Python server at \`${endpoint}\`, pass your **apiKey** in the component prop!`;
     }
   }
 
   // Register Web Component
-  if (!customElements.get('voctrum-chatbot-widget')) {
+  if (typeof customElements !== 'undefined' && !customElements.get('voctrum-chatbot-widget')) {
     customElements.define('voctrum-chatbot-widget', ChatbotWidget);
   }
 
   // Programmatic Initialization Helper
   function initChatbot(options = {}) {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined' || typeof document === 'undefined') return null;
 
     if (options) {
       window.__VOCTRUM_CHATBOT_CONFIG__ = {
@@ -1482,6 +1440,14 @@
       if (options.apiUrl) existing.setAttribute('api-url', options.apiUrl);
       if (options.welcomeMessage) existing.setAttribute('welcome-message', options.welcomeMessage);
       document.body.appendChild(existing);
+    } else {
+      if (options.appName) existing.setAttribute('app-name', options.appName);
+      if (options.description) existing.setAttribute('description', options.description);
+      if (options.theme) existing.setAttribute('theme', options.theme);
+      if (options.position) existing.setAttribute('position', options.position);
+      if (options.apiKey) existing.setAttribute('api-key', options.apiKey);
+      if (options.apiUrl) existing.setAttribute('api-url', options.apiUrl);
+      if (options.welcomeMessage) existing.setAttribute('welcome-message', options.welcomeMessage);
     }
     return existing;
   }
